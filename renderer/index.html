@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>SysRec</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 960px;
+    height: 700px;
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #f4f4f4;
+    color: #222;
+    overflow: hidden;
+    user-select: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* タイトルバー */
+  #titlebar {
+    background: #d94040;
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    -webkit-app-region: drag;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  #titlebar .title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #titlebar .title-group img {
+    height: 20px;
+    width: auto;
+  }
+  #titlebar .win-controls {
+    -webkit-app-region: no-drag;
+    display: flex;
+    gap: 2px;
+  }
+  #titlebar .win-controls button {
+    background: none; border: none;
+    color: rgba(255,255,255,0.8);
+    font-size: 16px; cursor: pointer;
+    padding: 2px 10px; border-radius: 4px;
+  }
+  #titlebar .win-controls button:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+  /* 上段コントロール */
+  #controls {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 14px 18px 0;
+    background: #fff;
+  }
+  .ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-label { font-size: 11px; color: #888; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* 録画範囲 説明文エリア */
+  #region-desc-wrap {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 6px 18px 10px;
+    min-height: 30px;
+  }
+  #region-desc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 16px;
+  }
+  #region-desc {
+    font-size: 11px;
+    color: #888;
+  }
+  #resetRegionBtn {
+    font-size: 11px;
+    padding: 2px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #888;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #resetRegionBtn:hover { background: #eee; color: #555; }
+
+  /* コントロール共通の高さ */
+  #regionSelect, .audio-selector, #recordBtn {
+    height: 40px;
+  }
+
+  /* 録画範囲ドロップダウン */
+  #regionSelect {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    padding: 0 32px 0 12px;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 140px;
+    color: #333;
+  }
+  #regionSelect:focus { outline: none; border-color: #d94040; }
+
+  /* 音声スイッチ */
+  .audio-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f5f5f5;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    padding: 0 14px;
+  }
+  .audio-selector .alabel {
+    font-size: 13px;
+    color: #aaa;
+    transition: color 0.2s;
+    white-space: nowrap;
+  }
+  .audio-selector .alabel.active { color: #333; font-weight: 600; }
+  .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .switch input { display: none; }
+  .switch .track {
+    position: absolute; inset: 0;
+    background: #3aa0ff; border-radius: 12px; cursor: pointer; transition: background 0.2s;
+  }
+  .switch .track::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: #fff; border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .switch input:checked + .track { background: #a040ff; }
+  .switch input:checked + .track::after { transform: translateX(20px); }
+
+  /* 録画ボタン */
+  .ctrl-group.record-group { flex: 1; }
+  #recordBtn {
+    width: 100%;
+    padding: 10px 20px;
+    background: #d94040;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  #recordBtn:hover { background: #c03030; }
+  #recordBtn.recording { background: #e74c3c; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+  /* プレビュー＋ファイル一覧 */
+  #preview-row {
+    display: flex;
+    gap: 12px;
+    margin: 14px 18px;
+    height: 380px;
+  }
+  #preview-area {
+    flex: 1;
+    background: #e8e8e8;
+    border-radius: 8px;
+    border: 1px solid #d0d0d0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  #preview-placeholder {
+    color: #aaa;
+    font-size: 14px;
+  }
+  #previewVideo {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  #previewVideo.visible { display: block; }
+
+  /* 録画ファイル一覧 */
+  #file-list-panel {
+    width: 220px;
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #file-list-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.5px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #openFolderBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #888;
+    line-height: 1;
+  }
+  #openFolderBtn:hover { background: #eee; color: #555; }
+  #file-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .file-item {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #444;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-item:hover { background: #f5f5f5; }
+  .file-item.active { background: #fdecea; color: #d94040; font-weight: 700; }
+  #file-list-empty {
+    padding: 14px 10px;
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  /* 下段 */
+  #footer {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 18px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+  }
+  #footer .flabel { font-size: 12px; color: #888; white-space: nowrap; }
+  #formatSelect {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 8px center;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 28px 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #333;
+    min-width: 90px;
+  }
+  #formatSelect:focus { outline: none; border-color: #d94040; }
+  #saveFolderInput {
+    flex: 1;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #555;
+    background: #fafafa;
+    cursor: default;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #browseBtn {
+    padding: 6px 14px;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    color: #444;
+  }
+  #browseBtn:hover { background: #f0f0f0; }
+
+  /* 下部クレジット欄（余白を吸収して右下に配置） */
+  #credit-bar {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 18px 14px;
+    min-height: 0;
+  }
+  #credit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+  #credit img { height: 32px; width: auto; }
+
+  #status {
+    font-size: 11px; color: #999;
+    padding: 0 18px 6px;
+    min-height: 16px;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+  <div id="titlebar">
+    <div class="title-group">
+      <img src="../resources/SysReclogo.png" alt="" />
+      <span>SysRec</span>
+      <img src="../resources/SysRec_!.png" alt="" />
+    </div>
+    <div class="win-controls">
+      <button id="minimizeBtn">－</button>
+      <button id="closeBtn">×</button>
+    </div>
+  </div>
+
+  <div id="controls">
+    <!-- 1. 録画範囲 -->
+    <div class="ctrl-group">
+      <div class="ctrl-label">録画範囲</div>
+      <select id="regionSelect">
+        <option value="" selected disabled>選択してください</option>
+        <option value="fullscreen">全画面</option>
+        <option value="window">指定ウィンドウ</option>
+        <option value="region">範囲選択</option>
+      </select>
+    </div>
+
+    <!-- 2. 音声 -->
+    <div class="ctrl-group">
+      <div class="ctrl-label">音声</div>
+      <div class="audio-selector">
+        <span class="alabel active" id="labelSystem">システム音声</span>
+        <label class="switch">
+          <input type="checkbox" id="audioToggle" />
+          <div class="track"></div>
+        </label>
+        <span class="alabel" id="labelMic">マイク</span>
+      </div>
+    </div>
+
+    <!-- 3. 録画 -->
+    <div class="ctrl-group record-group">
+      <div class="ctrl-label">録画</div>
+      <button id="recordBtn">録画開始</button>
+    </div>
+  </div>
+
+  <div id="region-desc-wrap">
+    <div id="region-desc-row">
+      <div id="region-desc"></div>
+      <button id="resetRegionBtn" style="display:none;">✕ 解除</button>
+    </div>
+  </div>
+
+  <!-- プレビュー＋ファイル一覧 -->
+  <div id="preview-row">
+    <div id="preview-area">
+      <div id="preview-placeholder">録画後に自動再生されます</div>
+      <video id="previewVideo" controls></video>
+    </div>
+    <div id="file-list-panel">
+      <div id="file-list-header">
+        <span>録画ファイル</span>
+        <button id="openFolderBtn" title="フォルダを開く">📁</button>
+      </div>
+      <div id="file-list">
+        <div id="file-list-empty">録画ファイルはありません</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <!-- フッター -->
+  <div id="footer">
+    <span class="flabel">出力形式</span>
+    <select id="formatSelect">
+      <option value="mp4">mp4</option>
+      <option value="webm">WebM</option>
+    </select>
+    <span class="flabel">保存先フォルダ</span>
+    <div id="saveFolderInput"></div>
+    <button id="browseBtn">参照</button>
+  </div>
+
+  <div id="credit-bar">
+    <div id="credit">
+      <span>Created by</span>
+      <img src="../resources/logo00.png" alt="" />
+    </div>
+  </div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

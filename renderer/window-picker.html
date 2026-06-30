@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>ウィンドウ選択</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  h2 { font-size: 15px; padding: 14px 18px 10px; color: #eee; }
+  #grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0 18px 18px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .item {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 180px;
+    background: #222;
+    transition: border-color 0.15s;
+  }
+  .item:hover { border-color: #e74c3c; }
+  .item img { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .item .name {
+    font-size: 11px;
+    padding: 5px 7px;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #cancelBtn {
+    margin: 0 18px 14px;
+    padding: 8px;
+    background: #444;
+    color: #eee;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #cancelBtn:hover { background: #555; }
+</style>
+</head>
+<body>
+  <h2>録画するウィンドウをクリックして選択してください</h2>
+  <div id="grid"></div>
+  <button id="cancelBtn">キャンセル</button>
+<script src="window-picker.js"></script>
+</body>
+</html>

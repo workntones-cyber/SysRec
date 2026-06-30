@@ -1,0 +1,36 @@
+{
+  "name": "sysrec",
+  "version": "0.1.0",
+  "description": "Windows screen recorder with region selection, system audio and mic capture",
+  "main": "main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "net.ntones.sysrec",
+    "productName": "SysRec",
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "resources/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "resources/ffmpeg",
+        "to": "ffmpeg"
+      }
+    ]
+  }
+}

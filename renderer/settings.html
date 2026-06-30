@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>SysRec 設定</title>
+<style>
+  body {
+    margin: 0;
+    background: #1c1c20;
+    color: #eee;
+    font-family: "Segoe UI", sans-serif;
+    padding: 16px;
+  }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 13px; margin-bottom: 6px; color: #ccc; }
+  .folder-row { display: flex; gap: 6px; }
+  .folder-row input { flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #444; background: #2a2a30; color: #eee; }
+  .folder-row button, select, .checkbox-row { padding: 6px 10px; border-radius: 4px; border: 1px solid #444; background: #2a2a30; color: #eee; cursor: pointer; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: default; border: none; }
+  #saveBtn { margin-top: 8px; padding: 8px 16px; border: none; border-radius: 6px; background: #3aa0ff; color: #fff; cursor: pointer; }
+  #saveBtn:hover { background: #5ab0ff; }
+  #savedMsg { font-size: 12px; color: #6fcf6f; margin-left: 10px; visibility: hidden; }
+</style>
+</head>
+<body>
+  <h2>設定</h2>
+
+  <div class="field">
+    <label>保存先フォルダ</label>
+    <div class="folder-row">
+      <input type="text" id="saveFolder" readonly />
+      <button id="chooseFolderBtn">参照...</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>出力形式</label>
+    <select id="outputFormat">
+      <option value="mp4">MP4</option>
+      <option value="webm">WebM</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>機能の表示/非表示</label>
+    <div class="checkbox-row"><input type="checkbox" id="enableWindowSelect" /> ウィンドウ選択</div>
+    <div class="checkbox-row"><input type="checkbox" id="enableRegionSelect" /> 範囲選択</div>
+    <div class="checkbox-row"><input type="checkbox" id="micAudio" /> マイク録音をデフォルトON</div>
+  </div>
+
+  <button id="saveBtn">保存</button>
+  <span id="savedMsg">保存しました</span>
+
+<script src="settings.js"></script>
+</body>
+</html>
