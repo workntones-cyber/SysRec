@@ -10,7 +10,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let toolbarWindow = null;
-let overlayWindow = null;
+let overlayWindows = []; // モニターごとに1枚ずつ作成する
 let settingsWindow = null;
 let borderWindow = null;
 let pickerWindow = null;
@@ -34,26 +34,34 @@ function createToolbarWindow() {
   toolbarWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 }
 
-function createOverlayWindow() {
-  const display = screen.getPrimaryDisplay();
-  overlayWindow = new BrowserWindow({
-    x: display.bounds.x,
-    y: display.bounds.y,
-    width: display.bounds.width,
-    height: display.bounds.height,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    fullscreenable: false,
-    skipTaskbar: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true
-    }
-  });
-  overlayWindow.setIgnoreMouseEvents(false);
-  overlayWindow.loadFile(path.join(__dirname, '..', 'renderer', 'overlay.html'));
-  overlayWindow.on('closed', () => { overlayWindow = null; });
+function closeAllOverlays() {
+  const wins = [...overlayWindows];
+  overlayWindows = [];
+  for (const w of wins) { if (!w.isDestroyed()) w.close(); }
+}
+
+function createOverlayWindows() {
+  closeAllOverlays();
+  // モニターごとに1枚の透明ウィンドウを作成する（1枚で全モニターを覆うと Windows で描画失敗する）
+  for (const display of screen.getAllDisplays()) {
+    const { x, y, width, height } = display.bounds;
+    const win = new BrowserWindow({
+      x, y, width, height,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      fullscreenable: false,
+      skipTaskbar: true,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true
+      }
+    });
+    win.setIgnoreMouseEvents(false);
+    win.loadFile(path.join(__dirname, '..', 'renderer', 'overlay.html'));
+    win.on('closed', () => { overlayWindows = overlayWindows.filter(w => w !== win); });
+    overlayWindows.push(win);
+  }
 }
 
 const PS_SCRIPT_PATH = path.join(app.getPath('temp'), 'sysrec_windows.ps1');
@@ -135,6 +143,7 @@ function showBorderWindow(bounds) {
     webPreferences: { contextIsolation: true }
   });
   borderWindow.setIgnoreMouseEvents(true);
+  borderWindow.setAlwaysOnTop(true, 'screen-saver');
   borderWindow.loadFile(path.join(__dirname, '..', 'renderer', 'border.html'));
   borderWindow.on('closed', () => { borderWindow = null; });
 }
@@ -216,14 +225,23 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('overlay:open', () => { if (!overlayWindow) createOverlayWindow(); });
+  ipcMain.handle('overlay:open', () => { createOverlayWindows(); });
+  // ユーザーが ESC を押した場合 → region:cancelled を送って UI をリセット
   ipcMain.handle('overlay:cancel', () => {
-    if (overlayWindow) overlayWindow.close();
+    closeAllOverlays();
     if (toolbarWindow) toolbarWindow.webContents.send('region:cancelled');
   });
+  // モード切り替え時の静音クローズ → region:cancelled は送らない
+  ipcMain.handle('overlay:close-silent', () => { closeAllOverlays(); });
 
   ipcMain.on('overlay:region-confirmed', (_e, region) => {
-    if (overlayWindow) overlayWindow.close();
+    // 送信元のオーバーレイウィンドウの位置でスクリーン絶対座標に変換する
+    const senderWin = BrowserWindow.fromWebContents(_e.sender);
+    if (senderWin) {
+      const [winX, winY] = senderWin.getPosition();
+      region = { ...region, x: region.x + winX, y: region.y + winY };
+    }
+    closeAllOverlays();
     if (toolbarWindow) {
       toolbarWindow.webContents.send('region:confirmed', region);
       toolbarWindow.focus();
@@ -252,6 +270,9 @@ app.whenReady().then(() => {
     if (bounds) showBorderWindow(bounds);
     if (toolbarWindow) toolbarWindow.webContents.send('window:picked', { ...source, bounds });
   });
+
+  ipcMain.handle('picker:close', () => { if (pickerWindow) { pickerWindow.close(); pickerWindow = null; } });
+  ipcMain.handle('picker:close-monitor', () => { if (monitorPickerWindow) { monitorPickerWindow.close(); monitorPickerWindow = null; } });
 
   // モニター選択ピッカー（マルチモニター時の全画面モード）
   ipcMain.handle('monitors:list', () => {

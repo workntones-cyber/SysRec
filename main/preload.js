@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('sysrec', {
   // 録画範囲オーバーレイ
   openRegionOverlay: () => ipcRenderer.invoke('overlay:open'),
   cancelRegionOverlay: () => ipcRenderer.invoke('overlay:cancel'),
+  closeRegionOverlaySilent: () => ipcRenderer.invoke('overlay:close-silent'),
   onRegionCancelled: (cb) => ipcRenderer.on('region:cancelled', (_e) => cb()),
   confirmRegion: (region) => ipcRenderer.send('overlay:region-confirmed', region),
   onRegionConfirmed: (cb) => ipcRenderer.on('region:confirmed', (_e, r) => cb(r)),
@@ -19,6 +20,7 @@ contextBridge.exposeInMainWorld('sysrec', {
 
   // ウィンドウ選択ピッカー（一覧から選択）
   openWindowPicker: () => ipcRenderer.invoke('picker:open'),
+  closeWindowPicker: () => ipcRenderer.invoke('picker:close'),
   listWindowSources: () => ipcRenderer.invoke('sources:list-windows'),
   windowPicked: (source) => ipcRenderer.send('picker:picked', source),
   onWindowPicked: (cb) => ipcRenderer.on('window:picked', (_e, s) => cb(s)),
@@ -27,6 +29,7 @@ contextBridge.exposeInMainWorld('sysrec', {
   listMonitors: () => ipcRenderer.invoke('monitors:list'),
   listScreenThumbnails: () => ipcRenderer.invoke('screens:list-thumbnails'),
   openMonitorPicker: () => ipcRenderer.invoke('picker:open-monitor'),
+  closeMonitorPicker: () => ipcRenderer.invoke('picker:close-monitor'),
   monitorPicked: (bounds) => ipcRenderer.send('monitor:picked', bounds),
   onMonitorPicked: (cb) => ipcRenderer.on('monitor:picked', (_e, b) => cb(b)),
 

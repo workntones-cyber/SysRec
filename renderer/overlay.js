@@ -5,8 +5,8 @@ const confirmBtn = document.getElementById('confirmBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const hintEl = document.getElementById('hint');
 
-canvas.width = window.screen.width;
-canvas.height = window.screen.height;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 const HANDLE_SIZE = 9;
 // 8ハンドル: TL, T, TR, R, BR, B, BL, L

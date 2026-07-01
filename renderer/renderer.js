@@ -28,6 +28,8 @@ let selectedRegion = null;
 let selectedWindowSource = null;
 let selectedMonitorBounds = null;
 let isRecording = false;
+let isResettingRegion = false;
+let savedRegionValue = '';
 
 function updateAudioLabels() {
   const isMic = audioToggle.checked;
@@ -107,7 +109,30 @@ openFolderBtn.addEventListener('click', () => {
   window.sysrec.openFolder(currentSettings.saveFolder);
 });
 
+// クリック時点で値をリセット → 同じ項目の再クリックでも change が発火する
+regionSelect.addEventListener('mousedown', () => {
+  if (isResettingRegion || isRecording) return;
+  savedRegionValue = regionSelect.value;
+  if (savedRegionValue !== '') {
+    isResettingRegion = true;
+    regionSelect.value = '';
+    isResettingRegion = false;
+  }
+});
+
+// キャンセル（Esc やクリック外し）で選択前の値に戻す
+regionSelect.addEventListener('blur', () => {
+  if (regionSelect.value === '' && savedRegionValue !== '') {
+    isResettingRegion = true;
+    regionSelect.value = savedRegionValue;
+    isResettingRegion = false;
+  }
+  savedRegionValue = '';
+});
+
 regionSelect.addEventListener('change', async () => {
+  if (isResettingRegion) return;
+  const mode = regionSelect.value;
   updateRegionDesc();
   selectedRegion = null;
   selectedWindowSource = null;
@@ -116,16 +141,20 @@ regionSelect.addEventListener('change', async () => {
   statusEl.textContent = '';
   await window.sysrec.hideBorder();
 
-  if (regionSelect.value === 'fullscreen') {
+  await window.sysrec.closeRegionOverlaySilent();
+  await window.sysrec.closeWindowPicker();
+  await window.sysrec.closeMonitorPicker();
+
+  if (mode === 'fullscreen') {
     const monitors = await window.sysrec.listMonitors();
     if (monitors.length > 1) {
       await window.sysrec.openMonitorPicker();
     } else {
       await window.sysrec.showFullscreenBorder();
     }
-  } else if (regionSelect.value === 'window') {
+  } else if (mode === 'window') {
     await window.sysrec.openWindowPicker();
-  } else if (regionSelect.value === 'region') {
+  } else if (mode === 'region') {
     await window.sysrec.openRegionOverlay();
   }
 });
@@ -250,7 +279,9 @@ function resetRegionSelection() {
   selectedRegion = null;
   selectedWindowSource = null;
   selectedMonitorBounds = null;
+  isResettingRegion = true;
   regionSelect.value = '';
+  isResettingRegion = false;
   updateRegionDesc();
   hideResetBtn();
   window.sysrec.hideBorder();
